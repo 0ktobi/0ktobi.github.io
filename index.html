@@ -4,11 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Random PDF Page Viewer</title>
-  <!-- Favicon link; its href will be updated dynamically -->
-  <link id="favicon" rel="icon" type="image/png" href="icons/light/four.ico">
+  <!-- Favicon link; using .ico files -->
+  <link id="favicon" rel="icon" type="image/x-icon" href="icons/light/icon1.ico">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+  <style>
+    /* Ensure the canvas takes full width of its container */
+    #pdf-canvas {
+      width: 100%;
+      height: auto;
+    }
+    /* Increase tap targets for navigation buttons on small screens */
+    @media (max-width: 576px) {
+      #prev-page-button,
+      #next-page-button {
+        font-size: 1.2rem;
+        padding: 0.75rem 1.5rem;
+        margin: 0.5rem;
+      }
+    }
+  </style>
 </head>
 <body class="container mt-3">
   <div class="d-flex justify-content-between align-items-center">
@@ -29,7 +45,7 @@
     
     <div class="text-center mt-3">
       <h6 id="page-info" class="fs-6">Page ? of ?</h6>
-      <canvas id="pdf-canvas" class="border shadow-lg" style="max-height: 75vh;"></canvas>
+      <canvas id="pdf-canvas" class="border shadow-lg"></canvas>
     </div>
 
     <div class="text-center mt-2">
@@ -40,29 +56,23 @@
 
   <script>
     /***** Favicon Randomizer & Dark Mode Icon Update *****/
-    // Define your icon pairs (adjust the paths as needed)
     let currentIconPair = null;
     const iconPairs = [
-      { light: 'icons/light/one.ico', dark: 'icons/dark/one.ico' },
-      { light: 'icons/light/two.ico', dark: 'icons/dark/two.ico' },
-      { light: 'icons/light/three.ico', dark: 'icons/dark/three.ico' },
-      { light: 'icons/light/four.ico', dark: 'icons/dark/four.ico' },
-      { light: 'icons/light/five.ico', dark: 'icons/dark/five.ico' },
-      { light: 'icons/light/six.ico', dark: 'icons/dark/six.ico' }
+      { light: 'icons/light/icon1.ico', dark: 'icons/dark/icon1.ico' },
+      { light: 'icons/light/icon2.ico', dark: 'icons/dark/icon2.ico' },
+      { light: 'icons/light/icon3.ico', dark: 'icons/dark/icon3.ico' }
     ];
 
-    // Update the favicon based on whether dark mode is active
     function updateFavicon() {
       const faviconEl = document.getElementById('favicon');
       if (!faviconEl || !currentIconPair) return;
-      if (document.body.classList.contains('bg-dark')) {
+      if ($("body").hasClass("bg-dark")) {
         faviconEl.href = currentIconPair.dark;
       } else {
         faviconEl.href = currentIconPair.light;
       }
     }
 
-    // Randomly select an icon pair from the set and update the favicon
     function selectRandomIcon() {
       const randomIndex = Math.floor(Math.random() * iconPairs.length);
       currentIconPair = iconPairs[randomIndex];
@@ -111,6 +121,9 @@
               $("#upload-section").hide();
               $("#viewer-section").show();
               $("#filename-display").text(`Viewing: ${file.name}`);
+              // Render the first page
+              currentPage = 1;
+              renderPage(currentPage);
             });
           };
           reader.readAsArrayBuffer(file);
@@ -135,21 +148,33 @@
         else if (event.key === " " || event.key === "Enter") $("#random-page-button").click();
         else if (event.key.toLowerCase() === "l") $("#dark-mode-toggle").click();
       });
+
+      // Re-render the page on window resize to maintain responsiveness
+      $(window).resize(function() {
+        if (pdfDoc) {
+          renderPage(currentPage);
+        }
+      });
     });
 
-    // Render a PDF page onto the canvas
+    // Render a PDF page at a scale that fits the viewer's width
     function renderPage(pageNum) {
       pdfDoc.getPage(pageNum).then(page => {
         const canvas = document.getElementById('pdf-canvas');
         const context = canvas.getContext('2d');
-        const viewport = page.getViewport({ scale: 1.5 });
+        // Get the width of the viewer container for responsive scaling
+        const containerWidth = $("#viewer-section").width();
+        // Get default viewport at scale 1 to calculate scale factor
+        const viewport = page.getViewport({ scale: 1 });
+        const scale = containerWidth / viewport.width;
+        const scaledViewport = page.getViewport({ scale: scale });
 
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
+        canvas.width = scaledViewport.width;
+        canvas.height = scaledViewport.height;
 
         page.render({
           canvasContext: context,
-          viewport: viewport
+          viewport: scaledViewport
         });
 
         $("#page-info").text(`Page ${pageNum} of ${totalPages}`);
