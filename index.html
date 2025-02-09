@@ -24,6 +24,11 @@
         margin: 0.5rem;
       }
     }
+    /* Limit the width of the viewer on larger screens and center it */
+    #viewer-section {
+      max-width: 900px;
+      margin: auto;
+    }
   </style>
 </head>
 <body class="container mt-3">
@@ -157,16 +162,18 @@
       });
     });
 
-    // Render a PDF page at a scale that fits the viewer's width
+    // Render a PDF page at a scale that fits the viewer's width, capped at a maximum scale for larger screens.
     function renderPage(pageNum) {
       pdfDoc.getPage(pageNum).then(page => {
         const canvas = document.getElementById('pdf-canvas');
         const context = canvas.getContext('2d');
         // Get the width of the viewer container for responsive scaling
         const containerWidth = $("#viewer-section").width();
-        // Get default viewport at scale 1 to calculate scale factor
+        // Get default viewport at scale 1 to calculate the scale factor
         const viewport = page.getViewport({ scale: 1 });
-        const scale = containerWidth / viewport.width;
+        // Set a maximum scale factor (adjust as needed)
+        const maxScale = 1.5;
+        const scale = Math.min(containerWidth / viewport.width, maxScale);
         const scaledViewport = page.getViewport({ scale: scale });
 
         canvas.width = scaledViewport.width;
