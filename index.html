@@ -172,7 +172,7 @@
         // Get default viewport at scale 1 to calculate the scale factor
         const viewport = page.getViewport({ scale: 1 });
         // Set a maximum scale factor (adjust as needed)
-        const maxScale = 2;
+        const maxScale = 5;
         const scale = Math.min(containerWidth / viewport.width, maxScale);
         const scaledViewport = page.getViewport({ scale: scale });
 
