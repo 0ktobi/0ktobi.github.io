@@ -46,127 +46,133 @@
   </div>
 
   <script>
-    let currentIconPair = null;
-    const iconPairs = [
-      { light: 'icons/light/one.ico', dark: 'icons/dark/one.ico' },
-      { light: 'icons/light/two.ico', dark: 'icons/dark/two.ico' },
-      { light: 'icons/light/three.ico', dark: 'icons/dark/three.ico' },
-      { light: 'icons/light/four.ico', dark: 'icons/dark/four.ico' },
-      { light: 'icons/light/five.ico', dark: 'icons/dark/five.ico' },
-      { light: 'icons/light/six.ico', dark: 'icons/dark/six.ico' }
-    ];
+  let currentIconPair = null;
+  const iconPairs = [
+    { light: 'icons/light/one.ico', dark: 'icons/dark/one.ico' },
+    { light: 'icons/light/two.ico', dark: 'icons/dark/two.ico' },
+    { light: 'icons/light/three.ico', dark: 'icons/dark/three.ico' },
+    { light: 'icons/light/four.ico', dark: 'icons/dark/four.ico' },
+    { light: 'icons/light/five.ico', dark: 'icons/dark/five.ico' },
+    { light: 'icons/light/six.ico', dark: 'icons/dark/six.ico' }
+  ];
 
-    function updateFavicon() {
-      const faviconEl = document.getElementById('favicon');
-      if (!faviconEl || !currentIconPair) return;
-      if (document.body.classList.contains('bg-dark')) {
-        faviconEl.href = currentIconPair.dark;
-      } else {
-        faviconEl.href = currentIconPair.light;
-      }
-    }
+  function updateFavicon() {
+    const faviconEl = document.getElementById('favicon');
+    if (!faviconEl || !currentIconPair) return;
+    faviconEl.href = document.body.classList.contains('bg-dark')
+      ? currentIconPair.dark
+      : currentIconPair.light;
+  }
 
-    function selectRandomIcon() {
-      const randomIndex = Math.floor(Math.random() * iconPairs.length);
-      currentIconPair = iconPairs[randomIndex];
+  function selectRandomIcon() {
+    const randomIndex = Math.floor(Math.random() * iconPairs.length);
+    currentIconPair = iconPairs[randomIndex];
+    updateFavicon();
+  }
+
+  let pdfDoc = null;
+  let currentPage = 1;
+  let totalPages = 0;
+  let scaleMode = 100; // range 100 (fit height) to 200 (fit width)
+
+  $(document).ready(function () {
+    selectRandomIcon();
+
+    if (localStorage.getItem("darkMode") === "enabled") {
+      $("body").addClass("bg-dark text-white");
+      $("#dark-mode-toggle").text("Light Mode");
       updateFavicon();
     }
 
-    let pdfDoc = null;
-    let currentPage = 1;
-    let totalPages = 0;
-    let zoomLevel = 1.5;
-
-    $(document).ready(function () {
-      selectRandomIcon();
-
-      if (localStorage.getItem("darkMode") === "enabled") {
-        $("body").addClass("bg-dark text-white");
-        $("#dark-mode-toggle").text("Light Mode");
-        updateFavicon();
-      }
-
-      $("#dark-mode-toggle").click(function () {
-        $("body").toggleClass("bg-dark text-white");
-        if ($("body").hasClass("bg-dark")) {
-          localStorage.setItem("darkMode", "enabled");
-          $("#dark-mode-toggle").text("Light Mode");
-        } else {
-          localStorage.setItem("darkMode", "disabled");
-          $("#dark-mode-toggle").text("Dark Mode");
-        }
-        updateFavicon();
-      });
-
-      $("#upload-button").click(function () {
-        const file = document.getElementById('pdf-file').files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = function (e) {
-            const buffer = e.target.result;
-            pdfjsLib.getDocument(buffer).promise.then(doc => {
-              pdfDoc = doc;
-              totalPages = pdfDoc.numPages;
-              $("#upload-section").hide();
-              $("#viewer-section").show();
-              $("#filename-display").text(`Viewing: ${file.name}`);
-              renderPage(currentPage);
-            });
-          };
-          reader.readAsArrayBuffer(file);
-        }
-      });
-
-      $("#random-page-button").click(function () {
-        if (!pdfDoc) return;
-        currentPage = Math.floor(Math.random() * totalPages) + 1;
-        renderPage(currentPage);
-      });
-
-      $("#prev-page-button").click(() => navigate(-1));
-      $("#next-page-button").click(() => navigate(1));
-
-      $("#zoom-slider").on("input", function () {
-        const value = parseInt($(this).val(), 10);
-        zoomLevel = value / 100;
-        renderPage(currentPage);
-      });
-
-      $(document).keydown(function (event) {
-        if (event.key === "ArrowLeft") navigate(-1);
-        else if (event.key === "ArrowRight") navigate(1);
-        else if (event.key === " " || event.key === "Enter") $("#random-page-button").click();
-        else if (event.key.toLowerCase() === "l") $("#dark-mode-toggle").click();
-      });
+    $("#dark-mode-toggle").click(function () {
+      $("body").toggleClass("bg-dark text-white");
+      const isDark = $("body").hasClass("bg-dark");
+      localStorage.setItem("darkMode", isDark ? "enabled" : "disabled");
+      $("#dark-mode-toggle").text(isDark ? "Light Mode" : "Dark Mode");
+      updateFavicon();
     });
 
-    function renderPage(pageNum) {
-      pdfDoc.getPage(pageNum).then(page => {
-        const canvas = document.getElementById('pdf-canvas');
-        const context = canvas.getContext('2d');
-        const viewport = page.getViewport({ scale: zoomLevel });
-
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
-        page.render({
-          canvasContext: context,
-          viewport: viewport
-        });
-
-        $("#page-info").text(`Page ${pageNum} of ${totalPages}`);
-        $("#prev-page-button").prop("disabled", pageNum === 1);
-        $("#next-page-button").prop("disabled", pageNum === totalPages);
-      });
-    }
-
-    function navigate(delta) {
-      const newPage = currentPage + delta;
-      if (newPage > 0 && newPage <= totalPages) {
-        currentPage = newPage;
-        renderPage(currentPage);
+    $("#upload-button").click(function () {
+      const file = document.getElementById('pdf-file').files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const buffer = e.target.result;
+          pdfjsLib.getDocument(buffer).promise.then(doc => {
+            pdfDoc = doc;
+            totalPages = doc.numPages;
+            $("#upload-section").hide();
+            $("#viewer-section").show();
+            $("#filename-display").text(`Viewing: ${file.name}`);
+            renderPage(currentPage);
+          });
+        };
+        reader.readAsArrayBuffer(file);
       }
+    });
+
+    $("#random-page-button").click(function () {
+      if (!pdfDoc) return;
+      currentPage = Math.floor(Math.random() * totalPages) + 1;
+      renderPage(currentPage);
+    });
+
+    $("#prev-page-button").click(() => navigate(-1));
+    $("#next-page-button").click(() => navigate(1));
+
+    $("#zoom-slider").on("input", function () {
+      scaleMode = parseInt($(this).val(), 10); // 100 to 200
+      renderPage(currentPage);
+    });
+
+    $(document).keydown(function (event) {
+      if (event.key === "ArrowLeft") navigate(-1);
+      else if (event.key === "ArrowRight") navigate(1);
+      else if (event.key === " " || event.key === "Enter") $("#random-page-button").click();
+      else if (event.key.toLowerCase() === "l") $("#dark-mode-toggle").click();
+    });
+  });
+
+  function renderPage(pageNum) {
+    pdfDoc.getPage(pageNum).then(page => {
+      const canvas = document.getElementById('pdf-canvas');
+      const context = canvas.getContext('2d');
+      const container = document.getElementById('canvas-container');
+
+      const unscaledViewport = page.getViewport({ scale: 1.0 });
+
+      let scale;
+      if (scaleMode === 100) {
+        // Fit full height of page into container
+        scale = container.clientHeight / unscaledViewport.height;
+      } else {
+        // Fit full width of page into container
+        scale = container.clientWidth / unscaledViewport.width;
+      }
+
+      const viewport = page.getViewport({ scale });
+
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      page.render({
+        canvasContext: context,
+        viewport: viewport
+      });
+
+      $("#page-info").text(`Page ${pageNum} of ${totalPages}`);
+      $("#prev-page-button").prop("disabled", pageNum === 1);
+      $("#next-page-button").prop("disabled", pageNum === totalPages);
+    });
+  }
+
+  function navigate(delta) {
+    const newPage = currentPage + delta;
+    if (newPage > 0 && newPage <= totalPages) {
+      currentPage = newPage;
+      renderPage(currentPage);
     }
-  </script>
+  }
+</script>
 </body>
 </html>
