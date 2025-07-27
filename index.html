@@ -36,7 +36,7 @@
     <div class="toggle-buttons">
       <button id="dark-mode-toggle" class="btn btn-outline-secondary btn-sm">Dark Mode</button>
       <button id="fullscreen-toggle" class="btn btn-outline-secondary btn-sm">
-        <img id="fullscreen-icon" src="icons/expand.png" alt="Fullscreen" style="width:1rem; height:1rem;">
+        <img id="fullscreen-icon" src="" alt="Fullscreen" style="width:1rem; height:1rem;">
       </button>
     </div>
   </div>
@@ -78,7 +78,9 @@
     function updateFavicon() {
       const faviconEl = document.getElementById('favicon');
       if (!faviconEl || !currentIconPair) return;
-      faviconEl.href = document.body.classList.contains('bg-dark') ? currentIconPair.dark : currentIconPair.light;
+      faviconEl.href = document.body.classList.contains('bg-dark')
+        ? currentIconPair.dark
+        : currentIconPair.light;
     }
 
     function selectRandomIcon() {
@@ -86,37 +88,55 @@
       updateFavicon();
     }
 
+    /***** Fullscreen Icon Themes *****/
+    const fullscreenIcons = {
+      light: { expand: 'icons/light/expand.png', compress: 'icons/light/compress.png' },
+      dark:  { expand: 'icons/dark/expand.png',  compress: 'icons/dark/compress.png'  }
+    };
+    function updateFullscreenIcon() {
+      const theme = document.body.classList.contains('bg-dark') ? 'dark' : 'light';
+      const isFull = !!document.fullscreenElement;
+      const icon = isFull ? fullscreenIcons[theme].compress : fullscreenIcons[theme].expand;
+      const altText = isFull ? 'Exit Fullscreen' : 'Fullscreen';
+      $('#fullscreen-icon').attr({src: icon, alt: altText});
+    }
+
     /***** PDF Viewer & Controls Code *****/
     let pdfDoc = null, currentPage = 1, totalPages = 0;
-    const expandIcon = 'icons/expand.png', compressIcon = 'icons/compress.png';
 
     $(document).ready(function() {
+      // Initial setup
       selectRandomIcon();
+      updateFullscreenIcon();
 
+      // Apply persisted dark mode
       if (localStorage.getItem('darkMode') === 'enabled') {
         $('body').addClass('bg-dark text-white');
         $('#dark-mode-toggle').text('Light Mode');
         updateFavicon();
       }
 
+      // Dark Mode Toggle
       $('#dark-mode-toggle').click(function() {
         $('body').toggleClass('bg-dark text-white');
         const dark = $('body').hasClass('bg-dark');
         localStorage.setItem('darkMode', dark ? 'enabled' : 'disabled');
         $(this).text(dark ? 'Light Mode' : 'Dark Mode');
         updateFavicon();
+        updateFullscreenIcon();
       });
 
-      $('#fullscreen-toggle').click(function() {
-        document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+      // Fullscreen Toggle
+      $('#fullscreen-toggle').click(() => {
+        document.fullscreenElement
+          ? document.exitFullscreen()
+          : document.documentElement.requestFullscreen();
       });
 
-      document.addEventListener('fullscreenchange', () => {
-        const isFull = !!document.fullscreenElement;
-        $('#fullscreen-icon').attr({'src': isFull ? compressIcon : expandIcon,
-                                     'alt': isFull ? 'Exit Fullscreen' : 'Fullscreen'});
-      });
+      // Update icon on fullscreen change
+      document.addEventListener('fullscreenchange', updateFullscreenIcon);
 
+      // PDF Upload Handler
       $('#upload-button').click(function() {
         const file = $('#pdf-file')[0].files[0];
         if (!file) return;
@@ -131,15 +151,18 @@
         reader.readAsArrayBuffer(file);
       });
 
+      // Random Page
       $('#random-page-button').click(() => {
         if (!pdfDoc) return;
         currentPage = Math.floor(Math.random() * totalPages) + 1;
         renderPage(currentPage);
       });
 
+      // Navigation Buttons
       $('#prev-page-button').click(() => navigate(-1));
       $('#next-page-button').click(() => navigate(1));
 
+      // Keyboard Shortcuts
       $(document).keydown(e => {
         if (e.key === 'ArrowLeft') navigate(-1);
         else if (e.key === 'ArrowRight') navigate(1);
@@ -162,7 +185,9 @@
 
     function navigate(delta) {
       const next = currentPage + delta;
-      if (next>0 && next<=totalPages) { currentPage = next; renderPage(next); }
+      if (next > 0 && next <= totalPages) {
+        currentPage = next; renderPage(next);
+      }
     }
   </script>
 </body>
