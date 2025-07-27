@@ -10,16 +10,21 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
   <style>
-    /* Ensure fullscreen button is a perfect square and centers its icon */
+    /* Container for toggle buttons to stay inline */
+    .toggle-buttons {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    /* Make fullscreen button square and center its icon */
     #fullscreen-toggle {
-      width: 32px;
-      height: 32px;
+      width: 2rem;
+      height: 2rem;
       padding: 0;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    /* Optional: remove extra line-height in img */
     #fullscreen-toggle img {
       display: block;
     }
@@ -28,10 +33,10 @@
 <body class="container mt-3">
   <div class="d-flex justify-content-between align-items-center">
     <h2 class="fs-5">Random PDF Page Viewer</h2>
-    <div>
+    <div class="toggle-buttons">
       <button id="dark-mode-toggle" class="btn btn-outline-secondary btn-sm">Dark Mode</button>
-      <button id="fullscreen-toggle" class="btn btn-outline-secondary btn-sm ms-2">
-        <img id="fullscreen-icon" src="icons/expand.png" alt="Fullscreen" style="width:16px; height:16px;">
+      <button id="fullscreen-toggle" class="btn btn-outline-secondary btn-sm">
+        <img id="fullscreen-icon" src="icons/expand.png" alt="Fullscreen" style="width:1rem; height:1rem;">
       </button>
     </div>
   </div>
@@ -73,137 +78,91 @@
     function updateFavicon() {
       const faviconEl = document.getElementById('favicon');
       if (!faviconEl || !currentIconPair) return;
-      if (document.body.classList.contains('bg-dark')) {
-        faviconEl.href = currentIconPair.dark;
-      } else {
-        faviconEl.href = currentIconPair.light;
-      }
+      faviconEl.href = document.body.classList.contains('bg-dark') ? currentIconPair.dark : currentIconPair.light;
     }
 
     function selectRandomIcon() {
-      const randomIndex = Math.floor(Math.random() * iconPairs.length);
-      currentIconPair = iconPairs[randomIndex];
+      currentIconPair = iconPairs[Math.floor(Math.random() * iconPairs.length)];
       updateFavicon();
     }
 
     /***** PDF Viewer & Controls Code *****/
-    let pdfDoc = null;
-    let currentPage = 1;
-    let totalPages = 0;
-
-    // Fullscreen icons
-    const expandIcon = 'icons/expand.png';
-    const compressIcon = 'icons/compress.png';
+    let pdfDoc = null, currentPage = 1, totalPages = 0;
+    const expandIcon = 'icons/expand.png', compressIcon = 'icons/compress.png';
 
     $(document).ready(function() {
-      // Initialize favicon
       selectRandomIcon();
 
-      // Apply dark mode if previously enabled
-      if (localStorage.getItem("darkMode") === "enabled") {
-        $("body").addClass("bg-dark text-white");
-        $("#dark-mode-toggle").text("Light Mode");
+      if (localStorage.getItem('darkMode') === 'enabled') {
+        $('body').addClass('bg-dark text-white');
+        $('#dark-mode-toggle').text('Light Mode');
         updateFavicon();
       }
 
-      // Dark Mode Toggle
-      $("#dark-mode-toggle").click(function() {
-        $("body").toggleClass("bg-dark text-white");
-        if ($("body").hasClass("bg-dark")) {
-          localStorage.setItem("darkMode", "enabled");
-          $("#dark-mode-toggle").text("Light Mode");
-        } else {
-          localStorage.setItem("darkMode", "disabled");
-          $("#dark-mode-toggle").text("Dark Mode");
-        }
+      $('#dark-mode-toggle').click(function() {
+        $('body').toggleClass('bg-dark text-white');
+        const dark = $('body').hasClass('bg-dark');
+        localStorage.setItem('darkMode', dark ? 'enabled' : 'disabled');
+        $(this).text(dark ? 'Light Mode' : 'Dark Mode');
         updateFavicon();
       });
 
-      // Fullscreen Toggle
-      $("#fullscreen-toggle").click(function() {
-        if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen();
-        } else {
-          document.exitFullscreen();
-        }
+      $('#fullscreen-toggle').click(function() {
+        document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
       });
 
-      // Swap icon on fullscreen change
       document.addEventListener('fullscreenchange', () => {
-        if (document.fullscreenElement) {
-          $("#fullscreen-icon").attr("src", compressIcon);
-          $("#fullscreen-icon").attr("alt", "Exit Fullscreen");
-        } else {
-          $("#fullscreen-icon").attr("src", expandIcon);
-          $("#fullscreen-icon").attr("alt", "Fullscreen");
-        }
+        const isFull = !!document.fullscreenElement;
+        $('#fullscreen-icon').attr({'src': isFull ? compressIcon : expandIcon,
+                                     'alt': isFull ? 'Exit Fullscreen' : 'Fullscreen'});
       });
 
-      // PDF Upload Handler
-      $("#upload-button").click(function() {
-        const file = document.getElementById('pdf-file').files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            const buffer = e.target.result;
-            pdfjsLib.getDocument(buffer).promise.then(doc => {
-              pdfDoc = doc;
-              totalPages = pdfDoc.numPages;
-              $("#upload-section").hide();
-              $("#viewer-section").show();
-              $("#filename-display").text(`Viewing: ${file.name}`);
-            });
-          };
-          reader.readAsArrayBuffer(file);
-        }
+      $('#upload-button').click(function() {
+        const file = $('#pdf-file')[0].files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+          pdfjsLib.getDocument(e.target.result).promise.then(doc => {
+            pdfDoc = doc; totalPages = doc.numPages;
+            $('#upload-section').hide(); $('#viewer-section').show();
+            $('#filename-display').text(`Viewing: ${file.name}`);
+          });
+        };
+        reader.readAsArrayBuffer(file);
       });
 
-      // Random Page Button
-      $("#random-page-button").click(function() {
+      $('#random-page-button').click(() => {
         if (!pdfDoc) return;
         currentPage = Math.floor(Math.random() * totalPages) + 1;
         renderPage(currentPage);
       });
 
-      // Navigation
-      $("#prev-page-button").click(() => navigate(-1));
-      $("#next-page-button").click(() => navigate(1));
+      $('#prev-page-button').click(() => navigate(-1));
+      $('#next-page-button').click(() => navigate(1));
 
-      // Keyboard Shortcuts
-      $(document).keydown(function(event) {
-        if (event.key === "ArrowLeft") navigate(-1);
-        else if (event.key === "ArrowRight") navigate(1);
-        else if (event.key === " " || event.key === "Enter") $("#random-page-button").click();
-        else if (event.key.toLowerCase() === "l") $("#dark-mode-toggle").click();
+      $(document).keydown(e => {
+        if (e.key === 'ArrowLeft') navigate(-1);
+        else if (e.key === 'ArrowRight') navigate(1);
+        else if (e.key === ' ' || e.key === 'Enter') $('#random-page-button').click();
+        else if (e.key.toLowerCase() === 'l') $('#dark-mode-toggle').click();
       });
     });
 
-    function renderPage(pageNum) {
-      pdfDoc.getPage(pageNum).then(page => {
-        const canvas = document.getElementById('pdf-canvas');
-        const context = canvas.getContext('2d');
-        const viewport = page.getViewport({ scale: 1.5 });
-
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
-        page.render({
-          canvasContext: context,
-          viewport: viewport
-        });
-
-        $("#page-info").text(`Page ${pageNum} of ${totalPages}`);
-        $("#prev-page-button").prop("disabled", pageNum === 1);
-        $("#next-page-button").prop("disabled", pageNum === total
+    function renderPage(num) {
+      pdfDoc.getPage(num).then(page => {
+        const canvas = $('#pdf-canvas')[0], ctx = canvas.getContext('2d');
+        const vp = page.getViewport({ scale: 1.5 });
+        canvas.width = vp.width; canvas.height = vp.height;
+        page.render({ canvasContext: ctx, viewport: vp });
+        $('#page-info').text(`Page ${num} of ${totalPages}`);
+        $('#prev-page-button').prop('disabled', num===1);
+        $('#next-page-button').prop('disabled', num===totalPages);
       });
     }
 
     function navigate(delta) {
-      const newPage = currentPage + delta;
-      if (newPage > 0 && newPage <= totalPages) {
-        currentPage = newPage;
-        renderPage(currentPage);
-      }
+      const next = currentPage + delta;
+      if (next>0 && next<=totalPages) { currentPage = next; renderPage(next); }
     }
   </script>
 </body>
