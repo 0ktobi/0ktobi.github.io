@@ -15,7 +15,9 @@
     <h2 class="fs-5">Random PDF Page Viewer</h2>
     <div>
       <button id="dark-mode-toggle" class="btn btn-outline-secondary btn-sm">Dark Mode</button>
-      <button id="fullscreen-toggle" class="btn btn-outline-secondary btn-sm ms-2">Fullscreen</button>
+      <button id="fullscreen-toggle" class="btn btn-outline-secondary btn-sm ms-2">
+        <img id="fullscreen-icon" src="icons/expand.png" alt="Fullscreen" style="width:16px; height:16px;">
+      </button>
     </div>
   </div>
 
@@ -74,6 +76,10 @@
     let currentPage = 1;
     let totalPages = 0;
 
+    // Fullscreen icons
+    const expandIcon = 'icons/expand.png';
+    const compressIcon = 'icons/compress.png';
+
     $(document).ready(function() {
       // Initialize favicon
       selectRandomIcon();
@@ -107,12 +113,14 @@
         }
       });
 
-      // Update button text on fullscreen change
+      // Swap icon on fullscreen change
       document.addEventListener('fullscreenchange', () => {
         if (document.fullscreenElement) {
-          $("#fullscreen-toggle").text("Exit Fullscreen");
+          $("#fullscreen-icon").attr("src", compressIcon);
+          $("#fullscreen-icon").attr("alt", "Exit Fullscreen");
         } else {
-          $("#fullscreen-toggle").text("Fullscreen");
+          $("#fullscreen-icon").attr("src", expandIcon);
+          $("#fullscreen-icon").attr("alt", "Fullscreen");
         }
       });
 
